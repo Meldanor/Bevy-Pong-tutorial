@@ -1,0 +1,6 @@
+[package]
+name = "pong_tutoral"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
