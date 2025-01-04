@@ -1,7 +1,7 @@
 use bevy::{
     app::{App, Startup, Update},
     asset::Assets,
-    color::palettes::css::{BLUE, RED},
+    color::palettes::css::{BLUE, GREEN, RED},
     math::{
         bounding::{Aabb2d, BoundingCircle, IntersectsVolume},
         Vec2,
@@ -11,6 +11,7 @@ use bevy::{
         Rectangle, ResMut, Transform, With, Without,
     },
     sprite::{ColorMaterial, MeshMaterial2d},
+    window::Window,
     DefaultPlugins,
 };
 
@@ -127,16 +128,34 @@ fn spawn_paddles(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    window: Query<&Window>,
 ) {
     println!("Spawning paddles...");
+    if window.get_single().is_err() {
+        return;
+    }
+    let window = window.get_single().unwrap();
+    let window_width = window.resolution.width();
+    let padding = 50.;
+    let right_paddle_x = window_width / 2. - padding;
+    let left_paddle_x = -window_width / 2. + padding;
 
     let mesh = meshes.add(Rectangle::new(PADDLE_WIDTH, PADDLE_HEIGHT));
-    let material = materials.add(ColorMaterial::from_color(BLUE));
+    let player_color = materials.add(ColorMaterial::from_color(BLUE));
+    let ai_color = materials.add(ColorMaterial::from_color(GREEN));
 
     commands.spawn((
-        PaddleBundle::new(200., -25.),
+        Player,
+        PaddleBundle::new(right_paddle_x, -0.),
+        Mesh2d(mesh.clone()),
+        MeshMaterial2d(player_color),
+    ));
+
+    commands.spawn((
+        Ai,
+        PaddleBundle::new(left_paddle_x, -0.),
         Mesh2d(mesh),
-        MeshMaterial2d(material),
+        MeshMaterial2d(ai_color),
     ));
 }
 
@@ -189,3 +208,9 @@ fn handle_collisions(
         }
     }
 }
+
+#[derive(Component)]
+struct Player;
+
+#[derive(Component)]
+struct Ai;
