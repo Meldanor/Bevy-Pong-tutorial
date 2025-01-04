@@ -1,7 +1,12 @@
 use bevy::{
     app::{App, Startup, Update},
+    asset::Assets,
+    color::palettes::css::RED,
     math::Vec2,
-    prelude::{Bundle, Camera2d, Commands, Component, Query, Transform},
+    prelude::{
+        Bundle, Camera2d, Circle, Commands, Component, Mesh, Mesh2d, Query, ResMut, Transform,
+    },
+    sprite::{ColorMaterial, MeshMaterial2d},
     DefaultPlugins,
 };
 
@@ -9,7 +14,7 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_systems(Startup, (spawn_ball, spawn_camera))
-        .add_systems(Update, (project_positions))
+        .add_systems(Update, project_positions)
         .run();
 }
 
@@ -38,12 +43,19 @@ fn spawn_camera(mut commands: Commands) {
     commands.spawn_empty().insert(Camera2d::default());
 }
 
-fn spawn_ball(mut commands: Commands) {
+const BALL_SIZE: f32 = 5.;
+
+fn spawn_ball(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
     println!("Spawning ball...");
-    commands
-        .spawn_empty()
-        .insert(Transform::default())
-        .insert(BallBundle::new());
+
+    let mesh = meshes.add(Circle::new(BALL_SIZE));
+    let material = materials.add(ColorMaterial::from_color(RED));
+
+    commands.spawn((BallBundle::new(), Mesh2d(mesh), MeshMaterial2d(material)));
 }
 
 fn project_positions(mut positionables: Query<(&mut Transform, &Position)>) {
