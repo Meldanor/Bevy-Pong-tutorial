@@ -4,7 +4,8 @@ use bevy::{
     color::palettes::css::RED,
     math::Vec2,
     prelude::{
-        Bundle, Camera2d, Circle, Commands, Component, Mesh, Mesh2d, Query, ResMut, Transform,
+        Bundle, Camera2d, Circle, Commands, Component, IntoSystemConfigs, Mesh, Mesh2d, Query,
+        ResMut, Transform, With,
     },
     sprite::{ColorMaterial, MeshMaterial2d},
     DefaultPlugins,
@@ -14,7 +15,7 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_systems(Startup, (spawn_ball, spawn_camera))
-        .add_systems(Update, project_positions)
+        .add_systems(Update, (move_ball, project_positions).chain())
         .run();
 }
 
@@ -61,5 +62,13 @@ fn spawn_ball(
 fn project_positions(mut positionables: Query<(&mut Transform, &Position)>) {
     for (mut transform, position) in &mut positionables {
         transform.translation = position.0.extend(0.)
+    }
+}
+
+const BALL_SPEED: f32 = 1.0;
+
+fn move_ball(mut ball: Query<&mut Position, With<Ball>>) {
+    if let Ok(mut position) = ball.get_single_mut() {
+        position.0.x += BALL_SPEED;
     }
 }
