@@ -18,11 +18,13 @@ use bevy::{
     DefaultPlugins,
 };
 
+mod camera;
+
 pub struct AppPlugin;
 
 impl Plugin for AppPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(DefaultPlugins)
+        app.add_plugins((DefaultPlugins, camera::plugin))
             .init_resource::<Score>()
             .init_resource::<PongSounds>()
             .add_event::<Scored>()
@@ -33,7 +35,6 @@ impl Plugin for AppPlugin {
                     spawn_paddles,
                     spawn_gutters,
                     spawn_scoreboards,
-                    spawn_camera,
                     load_assets,
                 ),
             )
@@ -54,10 +55,6 @@ impl Plugin for AppPlugin {
                     .chain(),
             );
     }
-}
-
-fn spawn_camera(mut commands: Commands) {
-    commands.spawn_empty().insert(Camera2d::default());
 }
 
 #[derive(Resource, Default)]
