@@ -15,16 +15,16 @@ use bevy::{
     ui::{Node, PositionType, Val},
     utils::default,
     window::Window,
-    DefaultPlugins,
 };
 
 mod camera;
+mod window;
 
 pub struct AppPlugin;
 
 impl Plugin for AppPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((DefaultPlugins, camera::plugin))
+        app.add_plugins((camera::plugin, window::plugin))
             .init_resource::<Score>()
             .init_resource::<PongSounds>()
             .add_event::<Scored>()
