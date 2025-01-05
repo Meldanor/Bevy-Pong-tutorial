@@ -44,6 +44,7 @@ fn main() {
                 update_scoreboards,
                 reset_ball,
                 handle_player_input,
+                move_ai,
                 move_paddles,
                 handle_collisions,
                 project_positions,
@@ -243,6 +244,18 @@ struct Player;
 
 #[derive(Component)]
 struct Ai;
+
+fn move_ai(
+    mut ai: Query<(&mut Velocity, &Position), With<Ai>>,
+    ball: Query<&Position, With<Ball>>,
+) {
+    if let Ok((mut velocity, position)) = ai.get_single_mut() {
+        if let Ok(ball_position) = ball.get_single() {
+            let a_to_b = ball_position.0 - position.0;
+            velocity.0.y = a_to_b.y.signum();
+        }
+    }
+}
 
 const GUTTER_HEIGHT: f32 = 20.;
 
