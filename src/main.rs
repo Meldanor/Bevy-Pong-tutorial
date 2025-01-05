@@ -79,7 +79,7 @@ fn spawn_ball(
     let material = materials.add(ColorMaterial::from_color(RED));
 
     commands.spawn((
-        BallBundle::new(Vec2::new(1., 1.)),
+        BallBundle::new(Vec2::new(1., 0.)),
         Mesh2d(mesh),
         MeshMaterial2d(material),
     ));
@@ -91,7 +91,7 @@ fn project_positions(mut positionables: Query<(&mut Transform, &Position)>) {
     }
 }
 
-const BALL_SPEED: f32 = 1.0;
+const BALL_SPEED: f32 = 5.0;
 
 fn move_ball(mut ball: Query<(&mut Position, &Velocity), With<Ball>>) {
     if let Ok((mut position, velocity)) = ball.get_single_mut() {
@@ -134,10 +134,10 @@ fn spawn_paddles(
     window: Query<&Window>,
 ) {
     println!("Spawning paddles...");
-    if window.get_single().is_err() {
-        return;
-    }
-    let window = window.get_single().unwrap();
+    let window = match window.get_single() {
+        Ok(window) => window,
+        Err(_) => return,
+    };
     let window_width = window.resolution.width();
     let padding = 50.;
     let right_paddle_x = window_width / 2. - padding;
@@ -195,18 +195,20 @@ fn handle_collisions(
     mut ball: Query<(&mut Velocity, &Position, &Shape), With<Ball>>,
     other_things: Query<(&Position, &Shape), Without<Ball>>,
 ) {
-    if let Ok((mut ball_velocity, ball_position, ball_shape)) = ball.get_single_mut() {
-        for (position, shape) in &other_things {
-            if let Some(collision) = collide_with_side(
-                BoundingCircle::new(ball_position.0, ball_shape.0.x),
-                Aabb2d::new(position.0, shape.0 / 2.),
-            ) {
-                match collision {
-                    Collision::Left => ball_velocity.0.x *= -1.,
-                    Collision::Right => ball_velocity.0.x *= -1.,
-                    Collision::Top => ball_velocity.0.y *= -1.,
-                    Collision::Bottom => ball_velocity.0.y *= -1.,
-                }
+    let (mut ball_velocity, ball_position, ball_shape) = match ball.get_single_mut() {
+        Ok(tuple) => tuple,
+        Err(_) => return,
+    };
+    for (position, shape) in &other_things {
+        if let Some(collision) = collide_with_side(
+            BoundingCircle::new(ball_position.0, ball_shape.0.x),
+            Aabb2d::new(position.0, shape.0 / 2.),
+        ) {
+            match collision {
+                Collision::Left => ball_velocity.0.x *= -1.,
+                Collision::Right => ball_velocity.0.x *= -1.,
+                Collision::Top => ball_velocity.0.y *= -1.,
+                Collision::Bottom => ball_velocity.0.y *= -1.,
             }
         }
     }
@@ -246,10 +248,10 @@ fn spawn_gutters(
     mut materials: ResMut<Assets<ColorMaterial>>,
     window: Query<&Window>,
 ) {
-    if window.get_single().is_err() {
-        return;
-    }
-    let window = window.get_single().unwrap();
+    let window = match window.get_single() {
+        Ok(window) => window,
+        Err(_) => return,
+    };
     let window_width = window.resolution.width();
     let window_heigth = window.resolution.height();
 
