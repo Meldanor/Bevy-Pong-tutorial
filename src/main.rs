@@ -1,7 +1,7 @@
 use bevy::{
     app::{App, Startup, Update},
     asset::Assets,
-    color::palettes::css::{BLUE, GREEN, RED},
+    color::palettes::css::{BLACK, BLUE, GREEN, RED},
     math::{
         bounding::{Aabb2d, BoundingCircle, IntersectsVolume},
         Vec2,
@@ -18,7 +18,10 @@ use bevy::{
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_systems(Startup, (spawn_ball, spawn_paddles, spawn_camera))
+        .add_systems(
+            Startup,
+            (spawn_ball, spawn_paddles, spawn_gutters, spawn_camera),
+        )
         .add_systems(
             Update,
             (move_ball, handle_collisions, project_positions).chain(),
@@ -76,7 +79,7 @@ fn spawn_ball(
     let material = materials.add(ColorMaterial::from_color(RED));
 
     commands.spawn((
-        BallBundle::new(Vec2::new(1., 0.)),
+        BallBundle::new(Vec2::new(1., 1.)),
         Mesh2d(mesh),
         MeshMaterial2d(material),
     ));
@@ -214,3 +217,59 @@ struct Player;
 
 #[derive(Component)]
 struct Ai;
+
+const GUTTER_HEIGHT: f32 = 20.;
+
+#[derive(Component)]
+struct Gutter;
+
+#[derive(Bundle)]
+struct GutterBundle {
+    gutter: Gutter,
+    shape: Shape,
+    position: Position,
+}
+
+impl GutterBundle {
+    fn new(x: f32, y: f32, width: f32) -> Self {
+        Self {
+            gutter: Gutter,
+            shape: Shape(Vec2::new(width, GUTTER_HEIGHT)),
+            position: Position(Vec2::new(x, y)),
+        }
+    }
+}
+
+fn spawn_gutters(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    window: Query<&Window>,
+) {
+    if window.get_single().is_err() {
+        return;
+    }
+    let window = window.get_single().unwrap();
+    let window_width = window.resolution.width();
+    let window_heigth = window.resolution.height();
+
+    let top_gutter_y = window_heigth / 2. - GUTTER_HEIGHT / 2.;
+    let bottom_gutter_y = -window_heigth / 2. + GUTTER_HEIGHT / 2.;
+
+    let top_gutter = GutterBundle::new(0., top_gutter_y, window_width);
+    let bottom_gutter = GutterBundle::new(0., bottom_gutter_y, window_width);
+
+    let mesh = meshes.add(Rectangle::from_size(top_gutter.shape.0));
+    let color = materials.add(ColorMaterial::from_color(BLACK));
+
+    commands.spawn((
+        top_gutter,
+        Mesh2d(mesh.clone()),
+        MeshMaterial2d(color.clone()),
+    ));
+    commands.spawn((
+        bottom_gutter,
+        Mesh2d(mesh.clone()),
+        MeshMaterial2d(color.clone()),
+    ));
+}
