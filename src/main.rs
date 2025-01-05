@@ -8,8 +8,9 @@ use bevy::{
         Vec2,
     },
     prelude::{
-        Bundle, Camera2d, Circle, Commands, Component, IntoSystemConfigs, KeyCode, Mesh, Mesh2d,
-        Query, Rectangle, Res, ResMut, Transform, With, Without,
+        Bundle, Camera2d, Circle, Commands, Component, Event, EventReader, EventWriter,
+        IntoSystemConfigs, KeyCode, Mesh, Mesh2d, Query, Rectangle, Res, ResMut, Resource,
+        Transform, With, Without,
     },
     sprite::{ColorMaterial, MeshMaterial2d},
     window::Window,
@@ -19,6 +20,8 @@ use bevy::{
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
+        .init_resource::<Score>()
+        .add_event::<Scored>()
         .add_systems(
             Startup,
             (spawn_ball, spawn_paddles, spawn_gutters, spawn_camera),
@@ -27,6 +30,9 @@ fn main() {
             Update,
             (
                 move_ball,
+                detect_scoring,
+                update_score,
+                reset_ball,
                 handle_player_input,
                 move_paddles,
                 handle_collisions,
@@ -318,5 +324,71 @@ fn move_paddles(
         if new_position.y.abs() < max_y {
             position.0 = new_position;
         }
+    }
+}
+
+enum Scorer {
+    Ai,
+    Player,
+}
+
+#[derive(Event)]
+struct Scored(Scorer);
+
+#[derive(Resource, Default)]
+struct Score {
+    player: u32,
+    ai: u32,
+}
+
+fn detect_scoring(
+    mut ball: Query<&mut Position, With<Ball>>,
+    window: Query<&Window>,
+    mut events: EventWriter<Scored>,
+) {
+    let window = match window.get_single() {
+        Ok(window) => window,
+        Err(_) => return,
+    };
+    let ball = match ball.get_single_mut() {
+        Ok(ball) => ball,
+        Err(_) => return,
+    };
+    let window_width = window.resolution.width();
+    if ball.0.x > window_width / 2. {
+        events.send(Scored(Scorer::Ai));
+    } else if ball.0.x < -window_width / 2. {
+        events.send(Scored(Scorer::Player));
+    }
+}
+
+fn reset_ball(
+    mut ball: Query<(&mut Position, &mut Velocity), With<Ball>>,
+    mut events: EventReader<Scored>,
+) {
+    let (mut ball_position, mut ball_velocity) = match ball.get_single_mut() {
+        Ok(ball) => ball,
+        Err(_) => return,
+    };
+    for event in events.read() {
+        ball_position.0 = Vec2::new(0., 0.);
+        match event.0 {
+            Scorer::Ai => {
+                ball_velocity.0 = Vec2::new(-1., -1.);
+            }
+            Scorer::Player => {
+                ball_velocity.0 = Vec2::new(1., 1.);
+            }
+        }
+    }
+}
+
+fn update_score(mut score: ResMut<Score>, mut events: EventReader<Scored>) {
+    for event in events.read() {
+        match event.0 {
+            Scorer::Ai => score.ai += 1,
+            Scorer::Player => score.player += 1,
+        }
+        println!("Score: {} - {}", score.player, score.ai);
     }
 }
