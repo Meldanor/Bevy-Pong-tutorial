@@ -8,11 +8,14 @@ use bevy::{
         Vec2,
     },
     prelude::{
-        Bundle, Camera2d, Circle, Commands, Component, Event, EventReader, EventWriter,
-        IntoSystemConfigs, KeyCode, Mesh, Mesh2d, Query, Rectangle, Res, ResMut, Resource,
-        Transform, With, Without,
+        BuildChildren, Bundle, Camera2d, ChildBuild, Circle, Commands, Component, DetectChanges,
+        Event, EventReader, EventWriter, IntoSystemConfigs, KeyCode, Mesh, Mesh2d, Query,
+        Rectangle, Res, ResMut, Resource, Text, Transform, With, Without,
     },
     sprite::{ColorMaterial, MeshMaterial2d},
+    text::{JustifyText, TextColor, TextFont, TextLayout},
+    ui::{Node, PositionType, Val},
+    utils::default,
     window::Window,
     DefaultPlugins,
 };
@@ -24,7 +27,13 @@ fn main() {
         .add_event::<Scored>()
         .add_systems(
             Startup,
-            (spawn_ball, spawn_paddles, spawn_gutters, spawn_camera),
+            (
+                spawn_ball,
+                spawn_paddles,
+                spawn_gutters,
+                spawn_scoreboards,
+                spawn_camera,
+            ),
         )
         .add_systems(
             Update,
@@ -32,6 +41,7 @@ fn main() {
                 move_ball,
                 detect_scoring,
                 update_score,
+                update_scoreboards,
                 reset_ball,
                 handle_player_input,
                 move_paddles,
@@ -391,4 +401,63 @@ fn update_score(mut score: ResMut<Score>, mut events: EventReader<Scored>) {
         }
         println!("Score: {} - {}", score.player, score.ai);
     }
+}
+
+#[derive(Component)]
+struct PlayerScore;
+
+#[derive(Component)]
+struct AiScore;
+
+fn update_scoreboards(
+    mut player_score: Query<&mut Text, With<PlayerScore>>,
+    mut ai_score: Query<&mut Text, (With<AiScore>, Without<PlayerScore>)>,
+    score: Res<Score>,
+) {
+    if !score.is_changed() {
+        return;
+    }
+
+    if let Ok(mut player_score) = player_score.get_single_mut() {
+        player_score.0 = score.player.to_string();
+    }
+    if let Ok(mut ai_score) = ai_score.get_single_mut() {
+        ai_score.0 = score.ai.to_string();
+    }
+}
+
+fn spawn_scoreboards(mut commands: Commands) {
+    commands
+        .spawn(Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(10.0),
+            right: Val::Px(15.0),
+            ..default()
+        })
+        .with_children(|builder| {
+            builder.spawn((
+                Text::new("0"),
+                TextColor::WHITE,
+                TextFont::from_font_size(72.),
+                TextLayout::new_with_justify(JustifyText::Center),
+                PlayerScore,
+            ));
+        });
+
+    commands
+        .spawn(Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(10.0),
+            left: Val::Px(15.0),
+            ..default()
+        })
+        .with_children(|builder| {
+            builder.spawn((
+                Text::new("0"),
+                TextColor::WHITE,
+                TextFont::from_font_size(72.),
+                TextLayout::new_with_justify(JustifyText::Center),
+                AiScore,
+            ));
+        });
 }
