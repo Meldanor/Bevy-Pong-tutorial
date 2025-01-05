@@ -2,13 +2,14 @@ use bevy::{
     app::{App, Startup, Update},
     asset::Assets,
     color::palettes::css::{BLACK, BLUE, GREEN, RED},
+    input::ButtonInput,
     math::{
         bounding::{Aabb2d, BoundingCircle, IntersectsVolume},
         Vec2,
     },
     prelude::{
-        Bundle, Camera2d, Circle, Commands, Component, IntoSystemConfigs, Mesh, Mesh2d, Query,
-        Rectangle, ResMut, Transform, With, Without,
+        Bundle, Camera2d, Circle, Commands, Component, IntoSystemConfigs, KeyCode, Mesh, Mesh2d,
+        Query, Rectangle, Res, ResMut, Transform, With, Without,
     },
     sprite::{ColorMaterial, MeshMaterial2d},
     window::Window,
@@ -24,7 +25,14 @@ fn main() {
         )
         .add_systems(
             Update,
-            (move_ball, handle_collisions, project_positions).chain(),
+            (
+                move_ball,
+                handle_player_input,
+                move_paddles,
+                handle_collisions,
+                project_positions,
+            )
+                .chain(),
         )
         .run();
 }
@@ -79,7 +87,7 @@ fn spawn_ball(
     let material = materials.add(ColorMaterial::from_color(RED));
 
     commands.spawn((
-        BallBundle::new(Vec2::new(1., 0.)),
+        BallBundle::new(Vec2::new(1., 1.)),
         Mesh2d(mesh),
         MeshMaterial2d(material),
     ));
@@ -91,7 +99,7 @@ fn project_positions(mut positionables: Query<(&mut Transform, &Position)>) {
     }
 }
 
-const BALL_SPEED: f32 = 5.0;
+const BALL_SPEED: f32 = 2.0;
 
 fn move_ball(mut ball: Query<(&mut Position, &Velocity), With<Ball>>) {
     if let Ok((mut position, velocity)) = ball.get_single_mut() {
@@ -274,4 +282,41 @@ fn spawn_gutters(
         Mesh2d(mesh.clone()),
         MeshMaterial2d(color.clone()),
     ));
+}
+
+fn handle_player_input(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut paddle: Query<&mut Velocity, With<Player>>,
+) {
+    let mut paddle_velocity = match paddle.get_single_mut() {
+        Ok(paddle) => paddle,
+        Err(_) => return,
+    };
+
+    if keyboard_input.any_pressed([KeyCode::ArrowUp, KeyCode::KeyW]) {
+        paddle_velocity.0.y = 1.;
+    } else if keyboard_input.any_pressed([KeyCode::ArrowDown, KeyCode::KeyS]) {
+        paddle_velocity.0.y = -1.;
+    } else {
+        paddle_velocity.0.y = 0.;
+    }
+}
+
+const PADDLE_SPEED: f32 = 5.;
+fn move_paddles(
+    mut paddle: Query<(&mut Position, &Velocity), With<Paddle>>,
+    window: Query<&Window>,
+) {
+    let window = match window.get_single() {
+        Ok(window) => window,
+        Err(_) => return,
+    };
+    let window_heigth = window.resolution.height();
+    let max_y = window_heigth / 2. - GUTTER_HEIGHT - PADDLE_HEIGHT / 2.;
+    for (mut position, velocity) in &mut paddle {
+        let new_position = position.0 + velocity.0 * PADDLE_SPEED;
+        if new_position.y.abs() < max_y {
+            position.0 = new_position;
+        }
+    }
 }
