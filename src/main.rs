@@ -1,6 +1,7 @@
 use bevy::{
     app::{App, Startup, Update},
-    asset::Assets,
+    asset::{AssetServer, Assets, Handle},
+    audio::{AudioPlayer, AudioSource, PlaybackSettings, Volume},
     color::palettes::css::{BLACK, BLUE, GREEN, RED},
     input::ButtonInput,
     math::{
@@ -24,6 +25,7 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .init_resource::<Score>()
+        .init_resource::<PongSounds>()
         .add_event::<Scored>()
         .add_systems(
             Startup,
@@ -33,6 +35,7 @@ fn main() {
                 spawn_gutters,
                 spawn_scoreboards,
                 spawn_camera,
+                load_assets,
             ),
         )
         .add_systems(
@@ -56,6 +59,17 @@ fn main() {
 
 fn spawn_camera(mut commands: Commands) {
     commands.spawn_empty().insert(Camera2d::default());
+}
+
+#[derive(Resource, Default)]
+struct PongSounds {
+    on_hit: Handle<AudioSource>,
+    on_score: Handle<AudioSource>,
+}
+
+fn load_assets(asset_server: Res<AssetServer>, mut pong_sounds: ResMut<PongSounds>) {
+    pong_sounds.on_hit = asset_server.load("audio/sfx/8-Bit - Coin Drop 001.wav");
+    pong_sounds.on_score = asset_server.load("audio/sfx/Items - Pickup - Collect 049.wav");
 }
 
 #[derive(Component)]
@@ -217,8 +231,10 @@ fn collide_with_side(ball: BoundingCircle, wall: Aabb2d) -> Option<Collision> {
 }
 
 fn handle_collisions(
+    mut commands: Commands,
     mut ball: Query<(&mut Velocity, &Position, &Shape), With<Ball>>,
     other_things: Query<(&Position, &Shape), Without<Ball>>,
+    pong_sounds: Res<PongSounds>,
 ) {
     let (mut ball_velocity, ball_position, ball_shape) = match ball.get_single_mut() {
         Ok(tuple) => tuple,
@@ -229,6 +245,10 @@ fn handle_collisions(
             BoundingCircle::new(ball_position.0, ball_shape.0.x),
             Aabb2d::new(position.0, shape.0 / 2.),
         ) {
+            commands.spawn((
+                AudioPlayer::new(pong_sounds.on_hit.clone_weak()),
+                PlaybackSettings::ONCE.with_volume(Volume::new(0.5)),
+            ));
             match collision {
                 Collision::Left => ball_velocity.0.x *= -1.,
                 Collision::Right => ball_velocity.0.x *= -1.,
@@ -406,8 +426,17 @@ fn reset_ball(
     }
 }
 
-fn update_score(mut score: ResMut<Score>, mut events: EventReader<Scored>) {
+fn update_score(
+    mut score: ResMut<Score>,
+    mut events: EventReader<Scored>,
+    mut commands: Commands,
+    pong_sounds: Res<PongSounds>,
+) {
     for event in events.read() {
+        commands.spawn((
+            AudioPlayer::new(pong_sounds.on_score.clone_weak()),
+            PlaybackSettings::ONCE.with_volume(Volume::new(0.3)),
+        ));
         match event.0 {
             Scorer::Ai => score.ai += 1,
             Scorer::Player => score.player += 1,
