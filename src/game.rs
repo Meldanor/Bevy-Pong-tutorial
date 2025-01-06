@@ -23,15 +23,14 @@ impl Plugin for PongPlugin {
                     load_assets,
                 ),
             )
+            .add_systems(Update, (update_scoreboards, handle_player_input).chain())
             .add_systems(
-                Update,
+                FixedUpdate,
                 (
                     move_ball,
                     detect_scoring,
                     update_score,
-                    update_scoreboards,
                     reset_ball,
-                    handle_player_input,
                     move_ai,
                     move_paddles,
                     handle_collisions,
@@ -102,7 +101,7 @@ fn spawn_ball(
     ));
 }
 
-const BALL_SPEED: f32 = 2.0;
+const BALL_SPEED: f32 = 4.0;
 
 fn move_ball(mut ball: Query<(&mut Position, &Velocity), With<Ball>>) {
     if let Ok((mut position, velocity)) = ball.get_single_mut() {
