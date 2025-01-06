@@ -12,4 +12,35 @@ opt-level = 1
 opt-level = 3
 
 [dependencies]
-bevy = { version = "0.15.1", features = ["wav", "wayland"] }
+bevy = { default-features = false, version = "0.15.1", features = [
+    "animation",
+    "bevy_animation",
+    "bevy_asset",
+    "bevy_audio",
+    "bevy_color",
+    "bevy_core_pipeline",
+    "bevy_gilrs",
+    "bevy_gizmos",
+    "bevy_mesh_picking_backend",
+    "bevy_picking",
+    "bevy_render",
+    "bevy_scene",
+    "bevy_sprite",
+    "bevy_sprite_picking_backend",
+    "bevy_state",
+    "bevy_text",
+    "bevy_ui",
+    "bevy_ui_picking_backend",
+    "bevy_window",
+    "bevy_winit",
+    "custom_cursor",
+    "default_font",
+    "multi_threaded",
+    "png",
+    "sysinfo_plugin",
+    "webgl2",
+    "x11",
+    "zstd",
+    "wav",
+    "wayland",
+] }
