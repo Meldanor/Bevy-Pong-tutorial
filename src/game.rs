@@ -4,6 +4,11 @@ use bevy::{
     math::bounding::{Aabb2d, BoundingCircle, IntersectsVolume},
     prelude::*,
 };
+use bevy_rapier2d::{
+    plugin::{NoUserData, RapierPhysicsPlugin},
+    prelude::Collider,
+    render::RapierDebugRenderPlugin,
+};
 
 use crate::positions::Position;
 pub struct PongPlugin;
@@ -13,6 +18,8 @@ impl Plugin for PongPlugin {
         app.init_resource::<Score>()
             .init_resource::<PongSounds>()
             .add_event::<Scored>()
+            .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(1.))
+            .add_plugins(RapierDebugRenderPlugin::default())
             .add_systems(
                 Startup,
                 (
@@ -33,7 +40,7 @@ impl Plugin for PongPlugin {
                     reset_ball,
                     move_ai,
                     move_paddles,
-                    handle_collisions,
+                    // handle_collisions,
                 )
                     .chain(),
             );
@@ -55,15 +62,12 @@ fn load_assets(asset_server: Res<AssetServer>, mut pong_sounds: ResMut<PongSound
 struct Velocity(Vec2);
 
 #[derive(Component)]
-struct Shape(Vec2);
-
-#[derive(Component)]
 struct Ball;
 
 #[derive(Bundle)]
 struct BallBundle {
     ball: Ball,
-    shape: Shape,
+    collider: Collider,
     velocity: Velocity,
     position: Position,
 }
@@ -72,10 +76,7 @@ impl BallBundle {
     fn new(velocity: Vec2) -> Self {
         Self {
             ball: Ball,
-            shape: Shape(Vec2 {
-                x: BALL_SIZE,
-                y: BALL_SIZE,
-            }),
+            collider: Collider::ball(BALL_SIZE),
             velocity: Velocity(velocity),
             position: Position(Vec2::new(0., 0.)),
         }
@@ -115,7 +116,7 @@ struct Paddle;
 #[derive(Bundle)]
 struct PaddleBundle {
     paddle: Paddle,
-    shape: Shape,
+    collider: Collider,
     position: Position,
     velocity: Velocity,
 }
@@ -124,10 +125,7 @@ impl PaddleBundle {
     fn new(x: f32, y: f32) -> Self {
         Self {
             paddle: Paddle,
-            shape: Shape(Vec2 {
-                x: PADDLE_WIDTH,
-                y: PADDLE_HEIGHT,
-            }),
+            collider: Collider::cuboid(PADDLE_WIDTH / 2., PADDLE_HEIGHT / 2.),
             position: Position(Vec2::new(x, y)),
             velocity: Velocity(Vec2 { x: 0., y: 0. }),
         }
@@ -172,63 +170,63 @@ fn spawn_paddles(
     ));
 }
 
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
-enum Collision {
-    Left,
-    Right,
-    Top,
-    Bottom,
-}
+// #[derive(Debug, PartialEq, Eq, Copy, Clone)]
+// enum Collision {
+//     Left,
+//     Right,
+//     Top,
+//     Bottom,
+// }
 
-fn collide_with_side(ball: BoundingCircle, wall: Aabb2d) -> Option<Collision> {
-    if !ball.intersects(&wall) {
-        return None;
-    }
-    let closest_point = wall.closest_point(ball.center);
-    let offset = ball.center - closest_point;
+// fn collide_with_side(ball: BoundingCircle, wall: Aabb2d) -> Option<Collision> {
+//     if !ball.intersects(&wall) {
+//         return None;
+//     }
+//     let closest_point = wall.closest_point(ball.center);
+//     let offset = ball.center - closest_point;
 
-    let side = if offset.x.abs() > offset.y.abs() {
-        if offset.x < 0. {
-            Collision::Left
-        } else {
-            Collision::Right
-        }
-    } else if offset.y > 0. {
-        Collision::Top
-    } else {
-        Collision::Bottom
-    };
-    Some(side)
-}
+//     let side = if offset.x.abs() > offset.y.abs() {
+//         if offset.x < 0. {
+//             Collision::Left
+//         } else {
+//             Collision::Right
+//         }
+//     } else if offset.y > 0. {
+//         Collision::Top
+//     } else {
+//         Collision::Bottom
+//     };
+//     Some(side)
+// }
 
-fn handle_collisions(
-    mut commands: Commands,
-    mut ball: Query<(&mut Velocity, &Position, &Shape), With<Ball>>,
-    other_things: Query<(&Position, &Shape), Without<Ball>>,
-    pong_sounds: Res<PongSounds>,
-) {
-    let (mut ball_velocity, ball_position, ball_shape) = match ball.get_single_mut() {
-        Ok(tuple) => tuple,
-        Err(_) => return,
-    };
-    for (position, shape) in &other_things {
-        if let Some(collision) = collide_with_side(
-            BoundingCircle::new(ball_position.0, ball_shape.0.x),
-            Aabb2d::new(position.0, shape.0 / 2.),
-        ) {
-            commands.spawn((
-                AudioPlayer::new(pong_sounds.on_hit.clone_weak()),
-                PlaybackSettings::ONCE.with_volume(Volume::new(0.5)),
-            ));
-            match collision {
-                Collision::Left => ball_velocity.0.x *= -1.,
-                Collision::Right => ball_velocity.0.x *= -1.,
-                Collision::Top => ball_velocity.0.y *= -1.,
-                Collision::Bottom => ball_velocity.0.y *= -1.,
-            }
-        }
-    }
-}
+// fn handle_collisions(
+//     mut commands: Commands,
+//     mut ball: Query<(&mut Velocity, &Position, &Shape), With<Ball>>,
+//     other_things: Query<(&Position, &Shape), Without<Ball>>,
+//     pong_sounds: Res<PongSounds>,
+// ) {
+//     let (mut ball_velocity, ball_position, ball_shape) = match ball.get_single_mut() {
+//         Ok(tuple) => tuple,
+//         Err(_) => return,
+//     };
+//     for (position, shape) in &other_things {
+//         if let Some(collision) = collide_with_side(
+//             BoundingCircle::new(ball_position.0, ball_shape.0.x),
+//             Aabb2d::new(position.0, shape.0 / 2.),
+//         ) {
+//             commands.spawn((
+//                 AudioPlayer::new(pong_sounds.on_hit.clone_weak()),
+//                 PlaybackSettings::ONCE.with_volume(Volume::new(0.5)),
+//             ));
+//             match collision {
+//                 Collision::Left => ball_velocity.0.x *= -1.,
+//                 Collision::Right => ball_velocity.0.x *= -1.,
+//                 Collision::Top => ball_velocity.0.y *= -1.,
+//                 Collision::Bottom => ball_velocity.0.y *= -1.,
+//             }
+//         }
+//     }
+// }
 
 #[derive(Component)]
 struct Player;
@@ -256,7 +254,7 @@ struct Gutter;
 #[derive(Bundle)]
 struct GutterBundle {
     gutter: Gutter,
-    shape: Shape,
+    collider: Collider,
     position: Position,
 }
 
@@ -264,7 +262,7 @@ impl GutterBundle {
     fn new(x: f32, y: f32, width: f32) -> Self {
         Self {
             gutter: Gutter,
-            shape: Shape(Vec2::new(width, GUTTER_HEIGHT)),
+            collider: Collider::cuboid(width / 2., GUTTER_HEIGHT / 2.),
             position: Position(Vec2::new(x, y)),
         }
     }
@@ -289,7 +287,7 @@ fn spawn_gutters(
     let top_gutter = GutterBundle::new(0., top_gutter_y, window_width);
     let bottom_gutter = GutterBundle::new(0., bottom_gutter_y, window_width);
 
-    let mesh = meshes.add(Rectangle::from_size(top_gutter.shape.0));
+    let mesh = meshes.add(Rectangle::new(window_width, GUTTER_HEIGHT));
     let color = materials.add(ColorMaterial::from_color(BLACK));
 
     commands.spawn((

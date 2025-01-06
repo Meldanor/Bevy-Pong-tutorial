@@ -44,3 +44,4 @@ bevy = { default-features = false, version = "0.15.1", features = [
     "wav",
     "wayland",
 ] }
+bevy_rapier2d = "0.28.0"
