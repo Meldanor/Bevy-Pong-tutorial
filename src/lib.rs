@@ -17,17 +17,19 @@ use bevy::{
     window::Window,
 };
 
-use positions::Position;
+use camera::PongCameraPlugin;
+use positions::{PongPositionsPlugin, Position};
+use window::PongWindowPlugin;
 
 mod camera;
-mod window;
 mod positions;
+mod window;
 
 pub struct AppPlugin;
 
 impl Plugin for AppPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((camera::plugin, window::plugin, positions::plugin))
+        app.add_plugins((PongCameraPlugin, PongWindowPlugin, PongPositionsPlugin))
             .init_resource::<Score>()
             .init_resource::<PongSounds>()
             .add_event::<Scored>()
@@ -69,7 +71,6 @@ fn load_assets(asset_server: Res<AssetServer>, mut pong_sounds: ResMut<PongSound
     pong_sounds.on_hit = asset_server.load("audio/sfx/8-Bit - Coin Drop 001.wav");
     pong_sounds.on_score = asset_server.load("audio/sfx/Items - Pickup - Collect 049.wav");
 }
-
 
 #[derive(Component)]
 struct Velocity(Vec2);
@@ -120,8 +121,6 @@ fn spawn_ball(
         MeshMaterial2d(material),
     ));
 }
-
-
 
 const BALL_SPEED: f32 = 2.0;
 
