@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-
 pub struct PongWindowPlugin;
 
 impl Plugin for PongWindowPlugin {
