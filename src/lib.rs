@@ -17,14 +17,17 @@ use bevy::{
     window::Window,
 };
 
+use positions::Position;
+
 mod camera;
 mod window;
+mod positions;
 
 pub struct AppPlugin;
 
 impl Plugin for AppPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((camera::plugin, window::plugin))
+        app.add_plugins((camera::plugin, window::plugin, positions::plugin))
             .init_resource::<Score>()
             .init_resource::<PongSounds>()
             .add_event::<Scored>()
@@ -50,7 +53,6 @@ impl Plugin for AppPlugin {
                     move_ai,
                     move_paddles,
                     handle_collisions,
-                    project_positions,
                 )
                     .chain(),
             );
@@ -68,8 +70,7 @@ fn load_assets(asset_server: Res<AssetServer>, mut pong_sounds: ResMut<PongSound
     pong_sounds.on_score = asset_server.load("audio/sfx/Items - Pickup - Collect 049.wav");
 }
 
-#[derive(Component)]
-struct Position(Vec2);
+
 #[derive(Component)]
 struct Velocity(Vec2);
 
@@ -120,11 +121,7 @@ fn spawn_ball(
     ));
 }
 
-fn project_positions(mut positionables: Query<(&mut Transform, &Position)>) {
-    for (mut transform, position) in &mut positionables {
-        transform.translation = position.0.extend(0.)
-    }
-}
+
 
 const BALL_SPEED: f32 = 2.0;
 
